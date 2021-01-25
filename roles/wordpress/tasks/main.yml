@@ -17,47 +17,64 @@
 
 - name: Permission certs so nginx can read them
   file:
-    mode: 0755
+    mode: 0774
     path: "{{ item }}"
+    group: www-data
+    recurse: yes
   with_items:
     - /etc/letsencrypt/archive
     - /etc/letsencrypt/live
 
-- name: Create Wordpress directory
+- name: Create site directories
   file:
     state: directory
-    path: "/var/www/{{ wordpress_hostname }}"
+    path: "{{ item }}"
+  with_items:
+    - "{{ wordpress_install_path }}"
+    - "{{ wordpress_page_cache_path }}"
 
 - name: Download Wordpress
   command: >
     wp-cli core download
-    --allow-root --no-color --path='/var/www/{{ wordpress_hostname }}'
+    --allow-root --no-color --path='{{ wordpress_install_path }}'
     --locale='{{ wordpress_locale }}'
   args:
-    creates: "/var/www/{{ wordpress_hostname }}/index.php"
+    creates: "{{ wordpress_install_path }}/index.php"
 
 - name: Generate wp-config.php
   command: >
     wp-cli core config
-    --allow-root --no-color --path='/var/www/{{ wordpress_hostname }}'
+    --allow-root --no-color --path='{{ wordpress_install_path }}'
     --dbname={{ wordpress_database_name }} --dbuser={{ wordpress_database_username }} --dbpass={{ wordpress_database_password }}
   args:
-    creates: "/var/www/{{ wordpress_hostname }}/wp-config.php"
+    creates: "{{ wordpress_install_path }}/wp-config.php"
 
 - name: Install Wordpress
   command: >
     wp-cli core install
-    --allow-root --no-color --path='/var/www/{{ wordpress_hostname }}'
+    --allow-root --no-color --path='{{ wordpress_install_path }}'
     --url='{{ wordpress_url }}' --title='{{ wordpress_site_title }}'
     --admin_name='{{ wordpress_admin_username }}'
     --admin_email='{{ wordpress_admin_email }}'
     --admin_password='{{ wordpress_admin_password }}'
 
+- name: Disable Wordpress Cron
+  command: >
+    wp-cli
+    --allow-root --no-color --path='{{ wordpress_install_path }}'
+    config set DISABLE_WP_CRON true --raw
+
+- name: Enable cron via system cron.d
+  cron:
+    name: "Wordpress Cron"
+    minute: "5"
+    job: "/usr/local/bin/wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}' cron event run --due-now >/dev/null 2>&1"
+
 - name: Install plugins
   command: >
-    wp-cli --allow-root --no-color --path='/var/www/{{ wordpress_hostname }}'
+    wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}'
     plugin install {{ item }}
-  with_items: "{{ wordpress_plugins }}""
+  with_items: "{{ wordpress_plugins }}"
 
 - name: Enable site
   ansible.builtin.file:
