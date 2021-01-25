@@ -1,0 +1,14 @@
+---
+- name: Install software-properties-common
+  apt:
+    name: software-properties-common
+
+- name: Install Mariadb apt key
+  ansible.builtin.apt_key:
+    url: https://mariadb.org/mariadb_release_signing_key.asc
+    state: present
+
+- name: Add Mariadb apt repo
+  ansible.builtin.apt_repository:
+    repo: deb [arch=amd64,arm64,ppc64el] {{ mariadb_apt_repo }} focal main
+    state: present

@@ -1,0 +1,73 @@
+---
+- name: Download wp-cli
+  get_url:
+    url: "{{ wordpress_wpcli_url }}"
+    dest: /usr/local/bin/wp-cli
+    mode: 0755
+
+- name: Template Wordpress Nginx config
+  template:
+    src: nginx_server.conf
+    dest: /etc/nginx/sites-available/{{ wordpress_hostname }}
+
+- name: Check certbot certs exist
+  stat:
+    path: /etc/letsencrypt/live/{{ wordpress_hostname }}
+  register: certbot
+
+- name: Permission certs so nginx can read them
+  file:
+    mode: 0755
+    path: "{{ item }}"
+  with_items:
+    - /etc/letsencrypt/archive
+    - /etc/letsencrypt/live
+
+- name: Create Wordpress directory
+  file:
+    state: directory
+    path: "/var/www/{{ wordpress_hostname }}"
+
+- name: Download Wordpress
+  command: >
+    wp-cli core download
+    --allow-root --no-color --path='/var/www/{{ wordpress_hostname }}'
+    --locale='{{ wordpress_locale }}'
+  args:
+    creates: "/var/www/{{ wordpress_hostname }}/index.php"
+
+- name: Generate wp-config.php
+  command: >
+    wp-cli core config
+    --allow-root --no-color --path='/var/www/{{ wordpress_hostname }}'
+    --dbname={{ wordpress_database_name }} --dbuser={{ wordpress_database_username }} --dbpass={{ wordpress_database_password }}
+  args:
+    creates: "/var/www/{{ wordpress_hostname }}/wp-config.php"
+
+- name: Install Wordpress
+  command: >
+    wp-cli core install
+    --allow-root --no-color --path='/var/www/{{ wordpress_hostname }}'
+    --url='{{ wordpress_url }}' --title='{{ wordpress_site_title }}'
+    --admin_name='{{ wordpress_admin_username }}'
+    --admin_email='{{ wordpress_admin_email }}'
+    --admin_password='{{ wordpress_admin_password }}'
+
+- name: Install plugins
+  command: >
+    wp-cli --allow-root --no-color --path='/var/www/{{ wordpress_hostname }}'
+    plugin install {{ item }}
+  with_items: "{{ wordpress_plugins }}""
+
+- name: Enable site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ wordpress_hostname }}
+    dest: /etc/nginx/sites-enabled/{{ wordpress_hostname }}
+    state: link
+  register: site_symlink
+
+- name: Reload nginx
+  systemd:
+    name: nginx
+    state: reloaded
+  when: site_symlink.changed

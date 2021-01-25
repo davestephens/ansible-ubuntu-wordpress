@@ -1,0 +1,4 @@
+---
+os_hostname: "{{ hostname }}"
+os_timezone: Europe/London
+os_update_packages: true

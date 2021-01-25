@@ -1,0 +1,19 @@
+---
+# unattended upgrades
+unattended_automatic_reboot_time: "04:00"
+unattended_update_days: '{"Sun"}'
+
+# mariadb (external role vars)
+mysql_packages:
+  - mariadb-client
+  - mariadb-server
+  - python3-mysqldb
+mysql_python_package_debian: python3-mysqldb
+
+# certbot (external role vars)
+certbot_auto_renew_minute: "20"
+certbot_auto_renew_hour: "5"
+certbot_create_if_missing: true
+certbot_create_method: standalone
+certbot_create_standalone_stop_services:
+  - nginx

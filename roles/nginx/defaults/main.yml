@@ -1,0 +1,16 @@
+---
+nginx_ppa: ppa:ondrej/nginx
+
+# general settings
+nginx_user: "www-data"
+nginx_worker_processes: "{{ ansible_processor_vcpus }}"
+nginx_server_tokens: "off"
+nginx_client_max_body_size: "64m"
+nginx_worker_connections: 768
+nginx_multi_accept: "on"
+
+# gzip settings
+nginx_gzip_enabled: "on"
+nginx_gzip_compression_level: 5
+nginx_gzip_proxied: "any"
+nginx_gzip_types: "text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript"

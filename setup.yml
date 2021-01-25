@@ -1,0 +1,28 @@
+---
+- hosts: all
+  roles:
+    - role: os
+      tags: os
+
+    - role: jnv.unattended-upgrades
+
+    - role: nginx
+      tags: nginx
+
+    - role: redis
+      tags: redis
+
+    - role: php
+      tags: php
+
+    - role: mariadb-prereqs
+      tags: mariadb-prereqs
+
+    - role: geerlingguy.mysql
+      tags: mariadb
+
+    - role: geerlingguy.certbot
+      tags: certbot
+
+    - role: wordpress
+      tags: wordpress

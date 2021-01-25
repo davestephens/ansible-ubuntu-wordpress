@@ -1,0 +1,19 @@
+---
+wordpress_wpcli_url: "https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar"
+wordpress_nginx_request_logging: yes
+wordpress_nginx_error_logging: yes
+wordpress_hostname: "{{ hostname }}"
+wordpress_locale: en_GB
+
+wordpress_database_name: "{{ mysql_databases[0].name }}"
+wordpress_database_username: "{{ mysql_users[0].name }}"
+wordpress_database_password: "{{ mysql_users[0].password }}"
+
+wordpress_site_title: "My Cool Site"
+wordpress_admin_email: "admin@example.com"
+wordpress_admin_username: "dave"
+wordpress_admin_password: top-secret-password
+wordpress_url: "https://{{ wordpress_hostname }}"
+wordpress_plugins:
+  - nginx-cache
+  - redis-cache

@@ -1,0 +1,27 @@
+---
+- name: Add nginx repository
+  apt_repository:
+    repo: "{{ nginx_ppa }}"
+
+- name: Install nginx
+  apt:
+    name: nginx
+
+- name: Template nginx.conf
+  template:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+  register: nginx_conf
+
+- name: Set fastcgi params
+  lineinfile:
+    path: /etc/nginx/fastcgi_params
+    line: "fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;"
+    create: yes
+  register: fastcgi_params
+
+- name: Restart nginx
+  systemd:
+    name: nginx
+    state: restarted
+  when: nginx_conf.changed or fastcgi_params.changed

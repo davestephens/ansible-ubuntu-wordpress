@@ -1,0 +1,4 @@
+---
+php_ppa: ppa:ondrej/php
+php_upload_max_filesize: 64m
+php_post_max_size: 64m
