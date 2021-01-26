@@ -64,17 +64,36 @@
     --allow-root --no-color --path='{{ wordpress_install_path }}'
     config set DISABLE_WP_CRON true --raw
 
+- name: Allow updates of plugins without FTP
+  command: >
+    wp-cli
+    --allow-root --no-color --path='{{ wordpress_install_path }}'
+    config set FS_METHOD direct --raw
+
 - name: Enable cron via system cron.d
   cron:
     name: "Wordpress Cron"
     minute: "5"
     job: "/usr/local/bin/wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}' cron event run --due-now >/dev/null 2>&1"
 
-- name: Install plugins
+- name: Install plugins from Wordpress.org
   command: >
     wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}'
     plugin install {{ item }}
   with_items: "{{ wordpress_plugins }}"
+
+- name: Copy zip plugins
+  copy:
+    src: "{{ inventory_dir }}/files/plugins/{{ item }}.zip"
+    dest: "{{ wordpress_data_path }}/plugins/{{ item }}.zip"
+    mode: 0644
+  with_items: "{{ wordpress_zip_plugins }}"
+
+- name: Install zip plugins
+  command: >
+    wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}'
+    plugin install {{ wordpress_data_path }}/plugins/{{ item }}.zip
+  with_items: "{{ wordpress_zip_plugins }}"
 
 - name: Enable site
   ansible.builtin.file:
