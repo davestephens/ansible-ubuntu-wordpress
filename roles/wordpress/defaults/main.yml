@@ -13,7 +13,8 @@ wordpress_database_password: "{{ mysql_users[0].password }}"
 wordpress_root: /var/www/{{ wordpress_hostname }}
 wordpress_install_path: "{{ wordpress_root }}/public"
 wordpress_data_path: "{{ wordpress_install_path }}/wp-content"
-wordpress_page_cache_path: "{{ wordpress_root }}/cache"
+wordpress_page_cache_path: "/dev/shm/nginx_cache" # ram disk on Ubuntu
+wordpress_page_cache_size: 500m
 wordpress_site_title: "My Cool Site"
 wordpress_admin_email: "admin@example.com"
 wordpress_admin_username: "dave"

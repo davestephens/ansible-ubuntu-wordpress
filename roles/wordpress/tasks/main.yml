@@ -81,19 +81,56 @@
     wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}'
     plugin install {{ item }}
   with_items: "{{ wordpress_plugins }}"
+  tags:
+    - wordpress_plugins
+    - wordpress_plugins_wordpress_org
 
 - name: Copy zip plugins
   copy:
     src: "{{ inventory_dir }}/files/plugins/{{ item }}.zip"
     dest: "{{ wordpress_data_path }}/plugins/{{ item }}.zip"
-    mode: 0644
   with_items: "{{ wordpress_zip_plugins }}"
+  tags:
+    - wordpress_plugins
+    - wordpress_plugins_zip_copy
 
 - name: Install zip plugins
   command: >
-    wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}'
+    wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}' --force
     plugin install {{ wordpress_data_path }}/plugins/{{ item }}.zip
   with_items: "{{ wordpress_zip_plugins }}"
+  tags:
+    - wordpress_plugins
+    - wordpress_plugins_zip_install
+
+- name: Copy zip themes
+  copy:
+    src: "{{ inventory_dir }}/files/themes/{{ item }}.zip"
+    dest: "{{ wordpress_data_path }}/themes/{{ item }}.zip"
+  with_items: "{{ wordpress_zip_themes }}"
+
+- name: Install zip themes
+  command: >
+    wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}' --force
+    theme install {{ wordpress_data_path }}/themes/{{ item }}.zip
+  with_items: "{{ wordpress_zip_themes }}"
+
+- name: Check directory ownership
+  file:
+    state: directory
+    path: "{{ wordpress_data_path }}"
+    owner: www-data
+    group: www-data
+
+- name: Check directory perms
+  shell: "find . -type d -exec chmod 0755 {} \\;"
+  args:
+    chdir: "{{ wordpress_data_path }}"
+
+- name: Check file perms
+  shell: "find . -type f -exec chmod 0644 {} \\;"
+  args:
+    chdir: "{{ wordpress_data_path }}"
 
 - name: Enable site
   ansible.builtin.file:
@@ -107,3 +144,34 @@
     name: nginx
     state: reloaded
   when: site_symlink.changed
+
+- name: Copy database export
+  copy:
+    src: "{{ inventory_dir }}/files/database/{{ wordpress_database_export }}"
+    dest: "/tmp/{{ wordpress_database_export }}"
+  when: wordpress_database_export is defined
+
+- name: Drop existing database
+  community.mysql.mysql_db:
+    name: "{{ wordpress_database_name }}"
+    state: absent
+  when: wordpress_database_export is defined
+
+- name: Import Wordpress database
+  community.mysql.mysql_db:
+    name: "{{ wordpress_database_name }}"
+    state: import
+    target: "/tmp/{{ wordpress_database_export }}"
+  when: wordpress_database_export is defined
+
+- name: Upgrade Wordpress database
+  command: >
+    wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}'
+    core update-db
+  when: wordpress_database_export is defined
+
+- name: Activate theme
+  command: >
+    wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}'
+    theme activate {{ wordpress_activate_theme }}
+  when: wordpress_activate_theme is defined
