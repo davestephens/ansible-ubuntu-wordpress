@@ -4,16 +4,23 @@
     url: "{{ wordpress_wpcli_url }}"
     dest: /usr/local/bin/wp-cli
     mode: 0755
+  tags:
+    - wordpress wpcli
 
 - name: Template Wordpress Nginx config
   template:
     src: nginx_server.conf
     dest: /etc/nginx/sites-available/{{ wordpress_hostname }}
+  register: wordpress_nginx_config
+  tags:
+    - wordpress_nginx
 
 - name: Check certbot certs exist
   stat:
     path: /etc/letsencrypt/live/{{ wordpress_hostname }}
   register: certbot
+  tags:
+    - wordpress_certbot_perms
 
 - name: Permission certs so nginx can read them
   file:
@@ -24,6 +31,8 @@
   with_items:
     - /etc/letsencrypt/archive
     - /etc/letsencrypt/live
+  tags:
+    - wordpress_certbot_perms
 
 - name: Create site directories
   file:
@@ -32,6 +41,8 @@
   with_items:
     - "{{ wordpress_install_path }}"
     - "{{ wordpress_page_cache_path }}"
+  tags:
+    - wordpress_directories
 
 - name: Download Wordpress
   command: >
@@ -40,6 +51,8 @@
     --locale='{{ wordpress_locale }}'
   args:
     creates: "{{ wordpress_install_path }}/index.php"
+  tags:
+    - wordpress_download
 
 - name: Generate wp-config.php
   command: >
@@ -48,6 +61,9 @@
     --dbname={{ wordpress_database_name }} --dbuser={{ wordpress_database_username }} --dbpass={{ wordpress_database_password }}
   args:
     creates: "{{ wordpress_install_path }}/wp-config.php"
+  tags:
+    - wordpress_config
+    - wordpress_config_generate
 
 - name: Install Wordpress
   command: >
@@ -57,24 +73,35 @@
     --admin_name='{{ wordpress_admin_username }}'
     --admin_email='{{ wordpress_admin_email }}'
     --admin_password='{{ wordpress_admin_password }}'
+  tags:
+    - wordpress_install
 
 - name: Disable Wordpress Cron
   command: >
     wp-cli
     --allow-root --no-color --path='{{ wordpress_install_path }}'
     config set DISABLE_WP_CRON true --raw
-
-- name: Allow updates of plugins without FTP
-  command: >
-    wp-cli
-    --allow-root --no-color --path='{{ wordpress_install_path }}'
-    config set FS_METHOD direct --raw
+  tags:
+    - wordpress_config
+    - wordpress_config_cron
 
 - name: Enable cron via system cron.d
   cron:
     name: "Wordpress Cron"
     minute: "5"
     job: "/usr/local/bin/wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}' cron event run --due-now >/dev/null 2>&1"
+  tags:
+    - wordpress_config
+    - wordpress_cron
+
+- name: Allow updates of plugins without FTP
+  command: >
+    wp-cli
+    --allow-root --no-color --path='{{ wordpress_install_path }}'
+    config set FS_METHOD direct --raw
+  tags:
+    - wordpress_config
+    - wordpress_config_fsmethod
 
 - name: Install plugins from Wordpress.org
   command: >
@@ -108,12 +135,18 @@
     src: "{{ inventory_dir }}/files/themes/{{ item }}.zip"
     dest: "{{ wordpress_data_path }}/themes/{{ item }}.zip"
   with_items: "{{ wordpress_zip_themes }}"
+  tags:
+    - wordpress_themes
+    - wordpress_themes_zip_copy
 
 - name: Install zip themes
   command: >
     wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}' --force
     theme install {{ wordpress_data_path }}/themes/{{ item }}.zip
   with_items: "{{ wordpress_zip_themes }}"
+  tags:
+    - wordpress_themes
+    - wordpress_themes_zip_install
 
 - name: Check directory ownership
   file:
@@ -121,41 +154,58 @@
     path: "{{ wordpress_data_path }}"
     owner: www-data
     group: www-data
+  tags:
+    - wordpress_permissions
+    - wordpress_permissions_ownership
 
 - name: Check directory perms
   shell: "find . -type d -exec chmod 0755 {} \\;"
   args:
     chdir: "{{ wordpress_data_path }}"
+  tags:
+    - wordpress_permissions
+    - wordpress_permissions_directory_perms
 
 - name: Check file perms
   shell: "find . -type f -exec chmod 0644 {} \\;"
   args:
     chdir: "{{ wordpress_data_path }}"
+  tags:
+    - wordpress_permissions
+    - wordpress_permissions_file_perms
 
 - name: Enable site
-  ansible.builtin.file:
+  file:
     src: /etc/nginx/sites-available/{{ wordpress_hostname }}
     dest: /etc/nginx/sites-enabled/{{ wordpress_hostname }}
     state: link
   register: site_symlink
+  tags:
+    - wordpress_nginx
 
 - name: Reload nginx
   systemd:
     name: nginx
     state: reloaded
-  when: site_symlink.changed
+  when: site_symlink.changed or wordpress_nginx_config.changed
+  tags:
+    - wordpress_nginx
 
 - name: Copy database export
   copy:
     src: "{{ inventory_dir }}/files/database/{{ wordpress_database_export }}"
     dest: "/tmp/{{ wordpress_database_export }}"
   when: wordpress_database_export is defined
+  tags:
+    - wordpress_database_import
 
 - name: Drop existing database
   community.mysql.mysql_db:
     name: "{{ wordpress_database_name }}"
     state: absent
   when: wordpress_database_export is defined
+  tags:
+    - wordpress_database_import
 
 - name: Import Wordpress database
   community.mysql.mysql_db:
@@ -163,15 +213,21 @@
     state: import
     target: "/tmp/{{ wordpress_database_export }}"
   when: wordpress_database_export is defined
+  tags:
+    - wordpress_database_import
 
 - name: Upgrade Wordpress database
   command: >
     wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}'
     core update-db
   when: wordpress_database_export is defined
+  tags:
+    - wordpress_database_import
 
 - name: Activate theme
   command: >
     wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}'
     theme activate {{ wordpress_activate_theme }}
   when: wordpress_activate_theme is defined
+  tags:
+  - wordpress_themes_activate
