@@ -1,0 +1,49 @@
+---
+# Hostname the site will be accessible from
+hostname: "web01.example.net"
+
+# Database setup
+# Variables will be passed to the MySql role
+mysql_root_password: top-secret
+mysql_databases:
+  - name: wordpress
+mysql_users:
+  - name: wordpress_user
+    host: "%"
+    password: super-secret
+    priv: "wordpress.*:ALL"
+
+
+# certbot (external role vars)
+certbot_admin_email: domains@domain.com
+certbot_certs:
+  - domains:
+    - "{{ hostname }}"
+
+wordpress_site_title: "Cool Wordpress Site"
+wordpress_admin_email: "user@coolwordpress.com"
+wordpress_admin_username: user
+wordpress_admin_password: unbreakable-secret
+wordpress_plugins:
+  - nginx-cache
+  - redis-cache
+  - duo-wordpress
+  - akismet
+  - updraftplus
+  - wordpress-seo
+  - regenerate-thumbnails
+
+# Plugins to install from inventories/<your_inventory>/files/plugins
+# wordpress_zip_plugins:
+#   - cool-plugin-7.0.0
+#   - sweet-plugin-0.0.1
+
+# Themes to install from inventories/<your_inventory>/files/plugins
+# wordpress_zip_themes:
+#   - my-cool-theme
+
+# If you want a specific theme activated as part of the install, set it here
+# wordpress_activate_theme: my-cool-theme
+
+# If you want to import a database, put the file in inventories/<your_inventory>/files/database
+# wordpress_database_export: export.sql
