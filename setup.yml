@@ -15,9 +15,6 @@
     - role: php
       tags: php
 
-    - role: mariadb-prereqs
-      tags: mariadb-prereqs
-
     - role: geerlingguy.mysql
       tags: mariadb
 
