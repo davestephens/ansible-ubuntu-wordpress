@@ -1,6 +1,9 @@
 ---
+# Server hostname that's DNS resolvable
+server_hostname: "server01.cloudprovider.net"
+
 # Hostname the site will be accessible from
-hostname: "web01.example.net"
+site_hostname: "web01.example.com"
 
 # Database setup
 # Variables will be passed to the MySql role
@@ -18,8 +21,10 @@ mysql_users:
 certbot_admin_email: domains@domain.com
 certbot_certs:
   - domains:
-    - "{{ hostname }}"
+    - "{{ server_hostname }}" # must be DNS resolvable
 
+
+# Wordpress configuration
 wordpress_site_title: "Cool Wordpress Site"
 wordpress_admin_email: "user@coolwordpress.com"
 wordpress_admin_username: user

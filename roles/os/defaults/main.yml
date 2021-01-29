@@ -1,4 +1,4 @@
 ---
-os_hostname: "{{ hostname }}"
+os_hostname: "{{ server_hostname }}"
 os_timezone: Europe/London
 os_update_packages: true
