@@ -98,7 +98,7 @@
   command: >
     wp-cli
     --allow-root --no-color --path='{{ wordpress_install_path }}'
-    config set FS_METHOD direct --raw
+    config set FS_METHOD 'direct'
   tags:
     - wordpress_config
     - wordpress_config_fsmethod
@@ -117,6 +117,7 @@
     src: "{{ inventory_dir }}/files/plugins/{{ item }}.zip"
     dest: "{{ wordpress_data_path }}/plugins/{{ item }}.zip"
   with_items: "{{ wordpress_zip_plugins }}"
+  when: wordpress_zip_plugins is defined
   tags:
     - wordpress_plugins
     - wordpress_plugins_zip_copy
@@ -126,6 +127,7 @@
     wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}' --force
     plugin install {{ wordpress_data_path }}/plugins/{{ item }}.zip
   with_items: "{{ wordpress_zip_plugins }}"
+  when: wordpress_zip_plugins is defined
   tags:
     - wordpress_plugins
     - wordpress_plugins_zip_install
@@ -135,6 +137,7 @@
     src: "{{ inventory_dir }}/files/themes/{{ item }}.zip"
     dest: "{{ wordpress_data_path }}/themes/{{ item }}.zip"
   with_items: "{{ wordpress_zip_themes }}"
+  when: wordpress_zip_themes is defined
   tags:
     - wordpress_themes
     - wordpress_themes_zip_copy
@@ -144,6 +147,7 @@
     wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}' --force
     theme install {{ wordpress_data_path }}/themes/{{ item }}.zip
   with_items: "{{ wordpress_zip_themes }}"
+  when: wordpress_zip_themes is defined
   tags:
     - wordpress_themes
     - wordpress_themes_zip_install
