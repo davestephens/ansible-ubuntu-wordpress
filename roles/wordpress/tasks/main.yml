@@ -9,7 +9,7 @@
 
 - name: Template Wordpress Nginx config
   template:
-    src: nginx_server.conf
+    src: nginx_server.conf.j2
     dest: /etc/nginx/sites-available/{{ wordpress_hostname }}
   register: wordpress_nginx_config
   tags:
@@ -108,9 +108,20 @@
     wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}'
     plugin install {{ item }}
   with_items: "{{ wordpress_plugins }}"
+  when: wordpress_plugins is defined
   tags:
     - wordpress_plugins
     - wordpress_plugins_wordpress_org
+
+- name: Install themes from Wordpress.org
+  command: >
+    wp-cli --allow-root --no-color --path='{{ wordpress_install_path }}'
+    theme install {{ item }}
+  with_items: "{{ wordpress_themes }}"
+  when: wordpress_themes is defined
+  tags:
+    - wordpress_themes
+    - wordpress_themes_wordpress_org
 
 - name: Copy zip plugins
   copy:
@@ -158,6 +169,7 @@
     path: "{{ wordpress_data_path }}"
     owner: www-data
     group: www-data
+    recurse: yes
   tags:
     - wordpress_permissions
     - wordpress_permissions_ownership

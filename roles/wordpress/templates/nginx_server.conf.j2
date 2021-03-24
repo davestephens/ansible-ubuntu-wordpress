@@ -1,5 +1,6 @@
+{% if nginx_page_caching_enabled == "true" %}
 fastcgi_cache_path {{ wordpress_page_cache_path }} levels=1:2 keys_zone={{ wordpress_hostname }}:{{ wordpress_page_cache_size }} inactive=60m;
-
+{% endif %}
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
@@ -14,6 +15,8 @@ server {
 
     root {{ wordpress_install_path }};
     index index.php;
+
+{% if nginx_page_caching_enabled == "true" %}
 
     set $skip_cache 0;
 
@@ -34,6 +37,7 @@ server {
     if ($http_cookie ~* "comment_author|wordpress_[a-f0-9]+|wp-postpass|wordpress_no_cache|wordpress_logged_in") {
         set $skip_cache 1;
     }
+{% endif %}
 
     location / {
         try_files $uri $uri/ /index.php?$args;
@@ -44,10 +48,12 @@ server {
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
         fastcgi_pass unix:/run/php/php7.4-fpm.sock;
         fastcgi_index index.php;
+{% if nginx_page_caching_enabled == "true" %}
         fastcgi_cache_bypass $skip_cache;
         fastcgi_no_cache $skip_cache;
         fastcgi_cache {{ wordpress_hostname }};
         fastcgi_cache_valid {{ wordpress_nginx_page_cache_duration }};
+{% endif %}
         include fastcgi_params;
     }
 }

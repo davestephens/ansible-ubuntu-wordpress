@@ -52,3 +52,6 @@ wordpress_plugins:
 
 # If you want to import a database, put the file in inventories/<your_inventory>/files/database
 # wordpress_database_export: export.sql
+
+# Whether to enable nginx page caching
+nginx_page_caching_enabled: false
