@@ -25,3 +25,7 @@
     name: nginx
     state: restarted
   when: nginx_conf.changed or fastcgi_params.changed
+
+- ufw:
+    rule: allow
+    name: "NGINX Full"
